@@ -1,0 +1,14 @@
+.venv/
+.vscode/
+dist/
+dist/*
+dist/hexlet_code-0.1.0-py3-none-any.whl
+dist/hexlet_code-0.1.0.tar.gz
+gendiff/file*
+gendiff/test*
+.pytest_cache
+debug.py
+.history/
+__pycache__/
+coverage.xml
+.coverage
