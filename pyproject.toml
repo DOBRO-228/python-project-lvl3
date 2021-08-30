@@ -3,14 +3,23 @@ name = "hexlet-code"
 version = "0.1.0"
 description = ""
 authors = ["Dobro <matematikaigor@gmail.com>"]
+packages = [
+  { include = "page_loader" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
 pytest = "^6.2.4"
-wemake-python-styleguide = "^0.15.3"
+requests = "^2.26.0"
+requests-mock = "^1.9.3"
+testresources = "^2.0.1"
 
 [tool.poetry.dev-dependencies]
+wemake-python-styleguide = "^0.15.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+page-loader = "page_loader.page_loader:main"

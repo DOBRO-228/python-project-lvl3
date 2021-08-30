@@ -5,9 +5,9 @@ build:
 publish:
 	poetry publish --dry-run
 package-install:
-	pip install --user ~/Desktop/hexlet_projects/python-project-lvl2/dist/*.whl
+	pip install --user ~/Desktop/hexlet_projects/python-project-lvl3/dist/*.whl
 package-reinstall:
-	pip install --user ~/Desktop/hexlet_projects/python-project-lvl2/dist/*.whl --force-reinstall
+	pip install --user ~/Desktop/hexlet_projects/python-project-lvl3/dist/*.whl --force-reinstall
 page_loader:
 	poetry run page_loader
 lint:
