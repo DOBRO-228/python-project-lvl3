@@ -2,12 +2,15 @@
 """Tests."""
 
 import tempfile
-import requests
+
 from page_loader.page_loader import download
 
 
 def test_download(requests_mock):
-    """Tests generated files path of download function.
+    """Test download method of page-loader .
+
+    Args:
+        requests_mock (package): Package for mocking requests.
 
     Returns answer of assert.
     """
