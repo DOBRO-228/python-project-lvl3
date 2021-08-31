@@ -4,9 +4,8 @@
 
 import argparse
 import os
-from urllib.parse import urlparse
 import sys
-
+from urllib.parse import urlparse
 
 import requests
 
@@ -25,7 +24,7 @@ class PageLoader(object):
         path_to_file = '{0}/{1}'.format(output, format_name_of_file(url))
         with open(path_to_file, 'w') as html_file:
             html_file.write(requests.get(url).text)
-            return path_to_file
+            return '{0}\n'.format(path_to_file)
 
 
 def format_name_of_file(url):
@@ -55,10 +54,15 @@ def main():
         argument_default=argparse.SUPPRESS,
         add_help=False,
     )
-    group = parser.add_argument_group('options')
+    parser.add_argument(
+        'url',
+        help=argparse.SUPPRESS,
+    )
+    group = parser.add_argument_group('Options')
     group.add_argument(
         '-o',
-        metavar='--output',
+        '--output',
+        metavar='[dir]',
         help='output dir (default: "/app")',
         default=os.getcwd(),
     )
@@ -69,11 +73,8 @@ def main():
         help='display help for command',
     )
     args = parser.parse_args()
-    url = args.url
-    output = args.output
     page_loader = PageLoader()
-    print('!!!!!')
-    page_loader.download(url, output)
+    sys.stdout.write(page_loader.download(args.url, args.output))
 
 
 if __name__ == '__main__':
