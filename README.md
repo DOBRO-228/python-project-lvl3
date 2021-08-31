@@ -6,4 +6,4 @@
 [![Test Coverage](https://api.codeclimate.com/v1/badges/9231f59ae46b06e78536/test_coverage)](https://codeclimate.com/github/DOBRO-228/python-project-lvl3/test_coverage)
 [![wemake-python-styleguide](https://img.shields.io/badge/style-wemake-000000.svg)](https://github.com/wemake-services/wemake-python-styleguide)
 
-##### Example of using [![asciicast](https://asciinema.org/a/XW4tjXr9yb3GTXjsKrdpqLRNG.svg)](https://asciinema.org/a/XW4tjXr9yb3GTXjsKrdpqLRNG)
+##### Example of usage [![asciicast](https://asciinema.org/a/XW4tjXr9yb3GTXjsKrdpqLRNG.svg)](https://asciinema.org/a/XW4tjXr9yb3GTXjsKrdpqLRNG)
