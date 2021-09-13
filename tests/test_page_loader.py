@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Tests."""
 
+import imghdr
 import os
 import tempfile
 
-from page_loader.page_loader import download
+from page_loader.page_loader import PageLoader, download
 
 
 def test_download(requests_mock):
@@ -24,6 +25,20 @@ def test_download(requests_mock):
                 assert html_file.read() == fixture.read()
 
 
+def test_download_media():
+    """Test download image method of page-loader.
+
+    Returns answer of assert.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        page_loader = PageLoader()
+        html_page = 'tests/fixtures/html_with_img.html'
+        page_loader.download_media(html_page, '/home/dobro/Desktop/hexlet_projects/python-project-lvl3/content')
+        # url = 'https://cdn2.hexlet.io/derivations/image/original/eyJpZCI6IjMxNzExYTI4ZDZlODlkODMzMThiZWE4MmIxOWViOTM1LnBuZyIsInN0b3JhZ2UiOiJjYWNoZSJ9?signature=83ec1b3027a828ce2e5f6210594bfa33db447da9dc7446b61a6553c8de153572'
+        # path_to_img = page_loader.download_img(url, tmpdir)
+        # assert imghdr.what(path_to_img) == 'png'
+
+
 def test_download_img(requests_mock):
     """Test download method of page-loader.
 
@@ -41,6 +56,9 @@ def test_download_img(requests_mock):
         img_path = '{0}_files/ru-hexlet-io-home-dobro-img.png'.format(
             file_path[:-5],
         )
+        page_loader = PageLoader()
+        url = 'https://cdn2.hexlet.io/derivations/image/original/eyJpZCI6IjMxNzExYTI4ZDZlODlkODMzMThiZWE4MmIxOWViOTM1LnBuZyIsInN0b3JhZ2UiOiJjYWNoZSJ9?signature=83ec1b3027a828ce2e5f6210594bfa33db447da9dc7446b61a6553c8de153572'
+        page_loader.download_img(url, os.getcwd())
         assert os.path.isfile(img_path)
 
 
@@ -58,6 +76,8 @@ def test_change_img_url(requests_mock):
             text='<img src="/home/dobro/img.png" alt="И">',
         )
         file_path = download('https://ru.hexlet.io/courses', tmpdir)
-        img_src = 'ru-hexlet-io-courses_files/ru-hexlet-io-home-dobro-img.png'
+        img_src = '{0}/ru-hexlet-io-courses_files/ru-hexlet-io-home-dobro-img.png'.format(
+            tmpdir,
+        )
         with open(file_path, 'r') as html_file:
             assert html_file.read() == '<img src="{0}" alt="И">'.format(img_src)

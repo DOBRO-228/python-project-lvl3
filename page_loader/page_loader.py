@@ -5,44 +5,57 @@
 import argparse
 import os
 import sys
-from urllib.parse import urlparse
+from shutil import copy2
 
 import requests
-
-default_path_to_save = os.getcwd()
+from bs4 import BeautifulSoup
+from page_loader.path_formatter import PathFormatter
 
 
 class PageLoader(object):
     """CLI command which downloads html page from url to path_to_save."""
 
-    def __init__(self):
-        self.output = os.getcwd()
+    def __init__(self, url):
+        self.path_formatter = PathFormatter(url)
 
-    def download(self, url, output=None):
+    def download(self, output=None):
         if output is None:
-            output = self.output
-        path_to_file = '{0}/{1}'.format(output, self.format_name_of_file(url))
-        with open(path_to_file, 'w') as html_file:
+            output = os.getcwd()
+        path_to_html = self.download_html(
+            self.path_formatter.path_to_html, output,
+        )
+        self.download_media(self.path_formatter.path_to_media, output)
+        return path_to_html
+
+    def download_html(self, url, output):
+        where_to_save = '{0}/{1}'.format(output, self.format_path(url, 'html'))
+        with open(where_to_save, 'w') as html_file:
             html_file.write(requests.get(url).text)
-            return '{0}'.format(path_to_file)
+        return where_to_save
 
-    def format_name_of_file(self, url):
-        parsed_url = urlparse(url)
-        extracted_path = '{0}{1}'.format(parsed_url.netloc, parsed_url.path)
-        name_without_extension = ''.join(list(map(
-            self.symbol_changer, list(extracted_path),
-        )))
-        return '{0}{1}'.format(name_without_extension, '.html')
+    def download_media(self, path_to_html, output):
+        path_to_dir = path_to_html.replace('.html', '_files')
+        with open(path_to_html) as html_file:
+            soup = BeautifulSoup(html_file, 'html.parser')
+            print(soup.prettify())
+            print(soup.find_all('img'))
+            for image in soup.find_all('img'):
+                self.download_img(image.get('src'), path_to_dir)
 
-    def symbol_changer(self, char):
-        if char.isalpha() or char.isdigit():
-            return char
-        return '-'
+    def download_img(self, url, directory):
+        path_to_file = '{0}/img.png'.format(directory)
+        if url.startswith('/'):
+            copy2(url, path_to_file)
+        else:
+            response = requests.get(url)
+            with open(path_to_file, 'wb') as img:
+                img.write(response.content)
+        return path_to_file
 
 
-def download(url_to_download, output=None):
-    loader = PageLoader()
-    return loader.download(url_to_download, output)
+def download(url, output=None):
+    downloader = PageLoader(url, output)
+    return downloader.download(output)
 
 
 def main():
