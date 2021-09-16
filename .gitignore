@@ -12,3 +12,4 @@ debug.py
 __pycache__/
 coverage.xml
 .coverage
+.venv
