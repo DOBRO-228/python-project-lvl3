@@ -4,58 +4,49 @@
 
 import argparse
 import os
+import pathlib
 import sys
-from shutil import copy2
 
 import requests
 from bs4 import BeautifulSoup
-from page_loader.path_formatter import PathFormatter
-
-
-class PageLoader(object):
-    """CLI command which downloads html page from url to path_to_save."""
-
-    def __init__(self, url):
-        self.path_formatter = PathFormatter(url)
-
-    def download(self, output=None):
-        if output is None:
-            output = os.getcwd()
-        path_to_html = self.download_html(
-            self.path_formatter.path_to_html, output,
-        )
-        self.download_media(self.path_formatter.path_to_media, output)
-        return path_to_html
-
-    def download_html(self, url, output):
-        where_to_save = '{0}/{1}'.format(output, self.format_path(url, 'html'))
-        with open(where_to_save, 'w') as html_file:
-            html_file.write(requests.get(url).text)
-        return where_to_save
-
-    def download_media(self, path_to_html, output):
-        path_to_dir = path_to_html.replace('.html', '_files')
-        with open(path_to_html) as html_file:
-            soup = BeautifulSoup(html_file, 'html.parser')
-            print(soup.prettify())
-            print(soup.find_all('img'))
-            for image in soup.find_all('img'):
-                self.download_img(image.get('src'), path_to_dir)
-
-    def download_img(self, url, directory):
-        path_to_file = '{0}/img.png'.format(directory)
-        if url.startswith('/'):
-            copy2(url, path_to_file)
-        else:
-            response = requests.get(url)
-            with open(path_to_file, 'wb') as img:
-                img.write(response.content)
-        return path_to_file
+from page_loader.path_formatter import path_formatter, path_to_file
 
 
 def download(url, output=None):
-    downloader = PageLoader(url, output)
-    return downloader.download(output)
+    if output is None:
+        output = os.getcwd()
+    path_builder = path_formatter(url, output)
+    download_html(path_builder)
+    download_files(path_builder)
+    return path_builder['path_to_html']
+
+
+def download_html(path_builder):
+    with open(path_builder['path_to_html'], 'w') as html_file:
+        html_file.write(requests.get(path_builder['original_url']).text)
+
+
+def download_files(path_builder):
+    pathlib.Path(path_builder['path_to_files']).mkdir(
+        parents=True, exist_ok=True,
+    )
+    with open(path_builder['path_to_html']) as html_file:
+        soup = BeautifulSoup(html_file, 'html.parser')
+        print(soup.prettify())
+        print(soup.find_all('img'))
+        for inner_file in soup.find_all('img'):
+            download_file(
+                inner_file.get('src'),
+                path_builder,
+            )
+
+
+def download_file(src, path_builder):
+    url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
+    response = requests.get(url_to_download)
+    with open(path_to_file(src, path_builder), 'wb') as inner_file:
+        inner_file.write(response.content)
+    return path_to_file(src, path_builder)
 
 
 def main():
@@ -84,8 +75,7 @@ def main():
         help='display help for command',
     )
     args = parser.parse_args()
-    page_loader = PageLoader()
-    file_path = '{0}\n'.format(page_loader.download(args.url, args.output))
+    file_path = '{0}\n'.format(download(args.url, args.output))
     sys.stdout.write(file_path)
 
 
