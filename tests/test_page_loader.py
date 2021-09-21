@@ -3,8 +3,10 @@
 
 import tempfile
 from pathlib import Path
+import os
+import re
 
-from page_loader.page_loader import download, download_file
+from page_loader.page_loader import download
 from page_loader.path_formatter import path_formatter
 
 
@@ -31,17 +33,13 @@ def test_download_media(requests_mock):
     Returns answer of assert.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        url = 'https://ru.hexlet.io/courses'
-        first_image_full_url = '{0}/home/dobro/Pictures/img.png'.format(url)
-        second_image_full_url = '{0}/home/dobro/Pictures/img2.jpg'.format(url)
+        path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
         with open('tests/fixtures/html_with_imgs.html', 'rb') as html_page:
-            requests_mock.get('https://ru.hexlet.io/courses', body=html_page)
-            file_path = download(url, tmpdir)
-            assert file_path == '{0}/ru-hexlet-io-courses.html'.format(tmpdir)
-
-        # url = 'https://cdn2.hexlet.io/derivations/image/original/eyJpZCI6IjMxNzExYTI4ZDZlODlkODMzMThiZWE4MmIxOWViOTM1LnBuZyIsInN0b3JhZ2UiOiJjYWNoZSJ9?signature=83ec1b3027a828ce2e5f6210594bfa33db447da9dc7446b61a6553c8de153572'
-        # path_to_img = page_loader.download_img(url, tmpdir)
-        # assert imghdr.what(path_to_img) == 'png'
+            matcher = re.compile(r'.*hexlet\.io.*')
+            requests_mock.get(matcher, body=html_page)
+            download('https://ru.hexlet.io/courses', tmpdir)
+            files = os.listdir(path_builder['path_to_files'])
+            assert len(files) == 2
 
 
 def test_download_img(requests_mock):
@@ -81,11 +79,13 @@ def test_change_img_url(requests_mock):
     Returns answer of assert.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
+        path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
+        matcher = re.compile(r'.*hexlet\.io.*')
         requests_mock.get(
-            'https://ru.hexlet.io/courses',
+            matcher,
             text='<img src="/home/dobro/Pictures/img.png" alt="И">',
         )
-        file_path = download('https://ru.hexlet.io/courses', tmpdir)
+        file_path = download(path_builder['original_url'], tmpdir)
         img_src = '{0}/ru-hexlet-io-courses_files/ru-hexlet-io-home-dobro-Pictures-img.png'.format(
             tmpdir,
         )
