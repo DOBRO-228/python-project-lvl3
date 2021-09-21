@@ -9,7 +9,15 @@ import sys
 
 import requests
 from bs4 import BeautifulSoup
+from bs4.formatter import HTMLFormatter
 from page_loader.path_formatter import path_formatter, path_to_file
+
+
+class UnsortedAttrsHtml5(HTMLFormatter):
+    def attributes(self, tag):
+        self.void_element_close_prefix = None
+        for k, v in tag.attrs.items():
+            yield k, v
 
 
 def download(url, output=None):
@@ -30,15 +38,21 @@ def download_files(path_builder):
     pathlib.Path(path_builder['path_to_files']).mkdir(
         parents=True, exist_ok=True,
     )
-    with open(path_builder['path_to_html']) as html_file:
+    with open(path_builder['path_to_html'], 'r') as html_file:
         soup = BeautifulSoup(html_file, 'html.parser')
-        print(soup.prettify())
-        print(soup.find_all('img'))
-        for inner_file in soup.find_all('img'):
-            download_file(
-                inner_file.get('src'),
-                path_builder,
-            )
+        for html_elem in soup.find_all('img'):
+            file_src = html_elem.get('src')
+            if file_src.startswith('/'):
+                change_src(html_elem, download_file(
+                    file_src,
+                    path_builder,
+                ))
+        with open(path_builder['path_to_html'], 'w') as new_html_file:
+            new_html_file.write(soup.encode(formatter=UnsortedAttrsHtml5()).decode('utf-8'))
+
+
+def change_src(html_elem, path):
+    html_elem['src'] = path
 
 
 def download_file(src, path_builder):
@@ -60,11 +74,11 @@ def main():
         'url',
         help=argparse.SUPPRESS,
     )
+    
     group = parser.add_argument_group('Options')
     group.add_argument(
         '-o',
-        '--output',
-        metavar='[dir]',
+        metavar='--output',
         help='output dir (default: "/app")',
         default=os.getcwd(),
     )
@@ -75,7 +89,7 @@ def main():
         help='display help for command',
     )
     args = parser.parse_args()
-    file_path = '{0}\n'.format(download(args.url, args.output))
+    file_path = '{0}\n'.format(download(args.url, args.o))
     sys.stdout.write(file_path)
 
 
