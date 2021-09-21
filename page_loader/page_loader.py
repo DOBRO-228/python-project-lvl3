@@ -47,8 +47,15 @@ def download_files(path_builder):
                     file_src,
                     path_builder,
                 ))
-        with open(path_builder['path_to_html'], 'w') as new_html_file:
-            new_html_file.write(soup.encode(formatter=UnsortedAttrsHtml5()).decode('utf-8'))
+        rewrite_html_file(path_builder['path_to_html'], soup)
+
+
+def rewrite_html_file(html_file, soup):
+    with open(html_file, 'w') as new_html_file:
+        new_html_file.write(soup.encode(
+            formatter=UnsortedAttrsHtml5(),
+        ).decode('utf-8'),
+        )
 
 
 def change_src(html_elem, path):
