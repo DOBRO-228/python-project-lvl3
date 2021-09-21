@@ -74,7 +74,6 @@ def main():
         'url',
         help=argparse.SUPPRESS,
     )
-    
     group = parser.add_argument_group('Options')
     group.add_argument(
         '-o',
