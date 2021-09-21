@@ -80,14 +80,17 @@ def test_change_img_url(requests_mock):
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
-        matcher = re.compile(r'.*hexlet\.io.*')
-        requests_mock.get(
-            matcher,
-            text='<img src="/home/dobro/Pictures/img.png" alt="И">',
-        )
-        file_path = download(path_builder['original_url'], tmpdir)
-        img_src = '{0}/ru-hexlet-io-courses_files/ru-hexlet-io-home-dobro-Pictures-img.png'.format(
-            tmpdir,
-        )
-        with open(file_path, 'r') as html_file:
-            assert html_file.read() == '<img src="{0}" alt="И">'.format(img_src)
+        with open('tests/fixtures/html_with_imgs.html', 'rb') as html_page:
+            requests_mock.get(
+                re.compile(r'.*hexlet\.io.*'),
+                body=html_page,
+            )
+            file_path = download(path_builder['original_url'], tmpdir)
+            first_html_img = '<img src="{0}/ru-hexlet-io-home-dobro-Pictures-img.png" alt="И1">'.format(
+                path_builder['path_to_files'],
+            )
+            second_html_img = '<img src="{0}/ru-hexlet-io-home-dobro-Pictures-img2.jpg" alt="C">'.format(
+                path_builder['path_to_files'],
+            )
+            with open(file_path, 'r') as html_file:
+                assert first_html_img and second_html_img in html_file.read()
