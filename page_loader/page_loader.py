@@ -43,10 +43,10 @@ def download_files(path_builder):
         for html_elem in soup.find_all('img'):
             file_src = html_elem.get('src')
             if file_src.startswith('/'):
-                change_src(html_elem, download_file(
+                html_elem['src'] = download_file(
                     file_src,
                     path_builder,
-                ))
+                )
         rewrite_html_file(path_builder['path_to_html'], soup)
 
 
@@ -56,10 +56,6 @@ def rewrite_html_file(html_file, soup):
             formatter=UnsortedAttrsHtml5(),
         ).decode('utf-8'),
         )
-
-
-def change_src(html_elem, path):
-    html_elem['src'] = path
 
 
 def download_file(src, path_builder):
