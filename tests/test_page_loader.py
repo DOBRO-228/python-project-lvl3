@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 import os
 import re
+import shutil
 
 from page_loader.page_loader import download
 from page_loader.path_formatter import path_formatter
@@ -19,7 +20,7 @@ def test_download(requests_mock):
     Returns answer of assert.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        with open('tests/fixtures/response.html', 'r') as fixture:
+        with open('tests/fixtures/expected_htmls/response.html', 'r') as fixture:
             requests_mock.get('https://ru.hexlet.io/courses', text='html_page')
             file_path = download('https://ru.hexlet.io/courses', tmpdir)
             assert file_path == '{0}/ru-hexlet-io-courses.html'.format(tmpdir)
@@ -27,8 +28,41 @@ def test_download(requests_mock):
                 assert html_file.read() == fixture.read()
 
 
-def test_download_media(requests_mock):
-    """Test download image method of page-loader.
+def test_download_img(requests_mock):
+    """Test download method of page-loader.
+
+    Args:
+        requests_mock (package): Package for mocking requests.
+
+    Returns answer of assert.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
+        image_full_url = '{0}/tests/fixtures/files/img.png'.format(
+            path_builder['original_url'],
+        )
+        with open('tests/fixtures/files/img.png', 'rb') as image:
+            requests_mock.get(
+                image_full_url, body=image,
+            )
+            requests_mock.get(
+                path_builder['original_url'],
+                text='<img src="/tests/fixtures/files/img.png" alt="И">',
+            )
+            download('https://ru.hexlet.io/courses', tmpdir)
+            path_to_img = '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(
+                path_builder['path_to_files'],
+            )
+            with open(path_to_img, 'rb') as downloaded_image:
+                with open('tests/fixtures/files/img.png', 'rb') as original_image:
+                    assert downloaded_image.read() == original_image.read()
+
+
+def test_download_all_media(requests_mock):
+    """Test download method of page-loader.
+
+    Args:
+        requests_mock (package): Package for mocking requests.
 
     Returns answer of assert.
     """
@@ -42,7 +76,7 @@ def test_download_media(requests_mock):
             assert len(files) == 2
 
 
-def test_download_img(requests_mock):
+def test_change_files_src(requests_mock):
     """Test download method of page-loader.
 
     Args:
@@ -51,46 +85,19 @@ def test_download_img(requests_mock):
     Returns answer of assert.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
-        image_full_url = '{0}/home/dobro/Pictures/img.png'.format(
-            path_builder['original_url'],
+        shutil.copytree(os.getcwd(), tmpdir, dirs_exist_ok=True)
+        os.chdir(tmpdir)
+        path_builder = path_formatter(
+            'https://ru.hexlet.io/courses', os.getcwd(),
         )
-        with open('/home/dobro/Pictures/img.png', 'rb') as image:
-            requests_mock.get(
-                image_full_url, body=image,
-            )
-            requests_mock.get(
-                path_builder['original_url'],
-                text='<img src="/home/dobro/Pictures/img.png" alt="И">',
-            )
-            download('https://ru.hexlet.io/courses', tmpdir)
-            path_to_img = '{0}/ru-hexlet-io-home-dobro-Pictures-img.png'.format(
-                path_builder['path_to_files'],
-            )
-            assert Path(path_to_img).exists()
-
-
-def test_change_img_url(requests_mock):
-    """Test download method of page-loader.
-
-    Args:
-        requests_mock (package): Package for mocking requests.
-
-    Returns answer of assert.
-    """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
-        with open('tests/fixtures/html_with_imgs.html', 'rb') as html_page:
+        path_to_fixture = '{0}/tests/fixtures/html_with_files.html'.format(tmpdir)
+        with open(path_to_fixture, 'rb') as html_page:
             requests_mock.get(
                 re.compile(r'.*hexlet\.io.*'),
                 body=html_page,
             )
-            file_path = download(path_builder['original_url'], tmpdir)
-            first_html_img = '<img src="{0}/ru-hexlet-io-home-dobro-Pictures-img.png" alt="И1">'.format(
-                path_builder['path_to_files'],
-            )
-            second_html_img = '<img src="{0}/ru-hexlet-io-home-dobro-Pictures-img2.jpg" alt="C">'.format(
-                path_builder['path_to_files'],
-            )
+            file_path = download(path_builder['original_url'])
             with open(file_path, 'r') as html_file:
-                assert first_html_img and second_html_img in html_file.read()
+                path_to_expctd_fixture = '{0}/tests/fixtures/expected_htmls/expected_html_sources.html'.format(tmpdir)
+                with open(path_to_expctd_fixture, 'r') as expected_html_file:
+                    assert html_file.read() == expected_html_file.read()
