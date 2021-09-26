@@ -9,15 +9,7 @@ import sys
 
 import requests
 from bs4 import BeautifulSoup
-from bs4.formatter import HTMLFormatter
 from page_loader.path_formatter import path_formatter, path_to_file
-
-
-class UnsortedAttrsHtml5(HTMLFormatter):
-    def attributes(self, tag):
-        self.void_element_close_prefix = None
-        for k, v in tag.attrs.items():
-            yield k, v
 
 
 def download(url, output=None):
@@ -25,7 +17,9 @@ def download(url, output=None):
         output = os.getcwd()
     path_builder = path_formatter(url, output)
     download_html(path_builder)
-    download_files(path_builder)
+    change_src_of_files(
+        path_builder['path_to_html'], download_files(path_builder),
+    )
     return path_builder['path_to_html']
 
 
@@ -40,22 +34,22 @@ def download_files(path_builder):
     )
     with open(path_builder['path_to_html'], 'r') as html_file:
         soup = BeautifulSoup(html_file, 'html.parser')
-        for html_elem in soup.find_all('img'):
-            file_src = html_elem.get('src')
-            if file_src.startswith('/'):
-                html_elem['src'] = download_file(
+        for html_elem in soup.find_all(['img', 'link', 'script']):
+            source = 'src'
+            if 'href' in html_elem.attrs:
+                source = 'href'
+            file_src = html_elem.get(source)
+            if file_src.startswith(('/', path_builder['scheme_with_host'])):
+                html_elem[source] = download_file(
                     file_src,
                     path_builder,
                 )
-        rewrite_html_file(path_builder['path_to_html'], soup)
+        return soup
 
 
-def rewrite_html_file(html_file, soup):
+def change_src_of_files(html_file, soup):
     with open(html_file, 'w') as new_html_file:
-        new_html_file.write(soup.encode(
-            formatter=UnsortedAttrsHtml5(),
-        ).decode('utf-8'),
-        )
+        new_html_file.write(soup.prettify(formatter='html5'))
 
 
 def download_file(src, path_builder):
