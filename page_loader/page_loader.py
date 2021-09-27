@@ -39,11 +39,14 @@ def download_files(path_builder):
             if 'href' in html_elem.attrs:
                 source = 'href'
             file_src = html_elem.get(source)
-            if file_src.startswith(('/', path_builder['scheme_with_host'])):
-                html_elem[source] = download_file(
-                    file_src,
-                    path_builder,
-                )
+            # print('!!!!!!!!')
+            # print(html_elem, file_src)
+            if file_src is not None:
+                if file_src.startswith(('/', path_builder['scheme_with_host'])):
+                    html_elem[source] = download_file(
+                        file_src,
+                        path_builder,
+                    )
         return soup
 
 
@@ -53,7 +56,10 @@ def change_src_of_files(html_file, soup):
 
 
 def download_file(src, path_builder):
-    url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
+    if src.startswith('/'):
+        url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
+    else:
+        url_to_download = src
     response = requests.get(url_to_download)
     with open(path_to_file(src, path_builder), 'wb') as inner_file:
         inner_file.write(response.content)
