@@ -6,6 +6,7 @@ import argparse
 import os
 import pathlib
 import sys
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
@@ -16,53 +17,34 @@ def download(url, output=None):
     if output is None:
         output = os.getcwd()
     path_builder = path_formatter(url, output)
-    download_html(path_builder)
-    change_src_of_files(
-        path_builder['path_to_html'], download_files(path_builder),
-    )
-    return path_builder['path_to_html']
-
-
-def download_html(path_builder):
-    with open(path_builder['path_to_html'], 'w') as html_file:
-        html_file.write(requests.get(path_builder['original_url']).text)
-
-
-def download_files(path_builder):
     pathlib.Path(path_builder['path_to_files']).mkdir(
         parents=True, exist_ok=True,
     )
-    with open(path_builder['path_to_html'], 'r') as html_file:
-        soup = BeautifulSoup(html_file, 'html.parser')
-        for html_elem in soup.find_all(['img', 'link', 'script']):
-            source = 'src'
-            if 'href' in html_elem.attrs:
-                source = 'href'
-            file_src = html_elem.get(source)
-            # print('!!!!!!!!')
-            # print(html_elem, file_src)
-            if file_src is not None:
-                if file_src.startswith(('/', path_builder['scheme_with_host'])):
-                    html_elem[source] = download_file(
-                        file_src,
-                        path_builder,
-                    )
-        return soup
+    html = requests.get(path_builder['original_url']).text
+    soup = BeautifulSoup(html, 'html.parser')
+    download_files(path_builder, soup)
+    with open(path_builder['path_to_html'], 'w') as html_file:
+        html_file.write(soup.prettify(formatter='html5'))
+    return path_builder['path_to_html']
 
 
-def change_src_of_files(html_file, soup):
-    with open(html_file, 'w') as new_html_file:
-        new_html_file.write(soup.prettify(formatter='html5'))
+def download_files(path_builder, soup):
+    for html_elem in soup.find_all(['img', 'script', 'link']):
+        sources = {
+            'img': 'src',
+            'script': 'src',
+            'link': 'href',
+        }
+        file_src = html_elem.get(sources[html_elem.name])
+        if file_src is not None:
+            if file_src.startswith(('/', path_builder['scheme_with_host'])):
+                html_elem[sources[html_elem.name]] = download_file(file_src, path_builder)
 
 
 def download_file(src, path_builder):
-    if src.startswith('/'):
-        url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
-    else:
-        url_to_download = src
-    response = requests.get(url_to_download)
+    url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
     with open(path_to_file(src, path_builder), 'wb') as inner_file:
-        inner_file.write(response.content)
+        inner_file.write(requests.get(url_to_download).content)
     return path_to_file(src, path_builder)
 
 

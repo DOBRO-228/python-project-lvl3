@@ -4,7 +4,7 @@
 
 import os
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 
 def path_formatter(url, output):
@@ -24,7 +24,7 @@ def path_formatter(url, output):
         'original_url': url,
         'scheme': scheme,
         'scheme_with_host': '{0}://{1}'.format(scheme, hostname),
-        'host_name': change_symbols(parsed_url.netloc),
+        'host_name': change_symbols(hostname),
         'path_to_html': '{0}/{1}{2}.html'.format(
             output, change_symbols(hostname), path,
         ),
@@ -33,10 +33,12 @@ def path_formatter(url, output):
 
 
 def path_to_file(src, path_builder):
-    if path_builder['scheme'] in src:
-        src = src.replace(path_builder['scheme_with_host'], '')
-    last_paths_node = re.sub(r'.*\/(?=.+$)', '', src)
-    if '.' not in last_paths_node:
+    parsed_src = urlparse(src)
+    if parsed_src.scheme:
+        parsed_src = (parsed_src._replace(scheme=''))._replace(netloc='')
+        src = parsed_src.geturl()
+    extension = os.path.splitext(parsed_src.path)[1]
+    if not extension:
         src = '{0}.html'.format(src)
     return '{0}/{1}{2}'.format(
         path_builder['path_to_files'],
@@ -45,9 +47,9 @@ def path_to_file(src, path_builder):
     )
 
 
-def change_symbols(path):
-    if path.startswith('/') and '.' in path:
-        path_with_dashes = re.sub(r'[^A-Za-z\d](?=.*\.)', '-', path)
-    else:
-        path_with_dashes = re.sub(r'[^A-Za-z\d]', '-', path)
-    return re.sub('-(?=jpg|png)', '.', path_with_dashes)
+def change_symbols(part_of_url):
+    if part_of_url.startswith('/'):
+        root_ext = os.path.splitext(part_of_url)
+        path_without_ext = re.sub(r'[^A-Za-z\d]', '-', root_ext[0])
+        return '{0}{1}'.format(path_without_ext, root_ext[1])
+    return re.sub(r'[^A-Za-z\d]', '-', part_of_url)
