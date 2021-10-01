@@ -50,7 +50,7 @@ def download_file(src, path_builder):
         src = parsed_src.geturl()
     else:
         url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
-    extension = os.path.splitext(parsed_src.path)[1]
+    extension = os.path.splitext(src)[1]
     if not extension:
         src = '{0}.html'.format(src)
     with open(path_to_file(src, path_builder), 'wb') as inner_file:
