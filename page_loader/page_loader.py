@@ -6,7 +6,8 @@ import argparse
 import os
 import pathlib
 import sys
-from urllib.parse import urljoin
+from urllib.parse import urlparse
+
 
 import requests
 from bs4 import BeautifulSoup
@@ -42,7 +43,16 @@ def download_files(path_builder, soup):
 
 
 def download_file(src, path_builder):
-    url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
+    parsed_src = urlparse(src)
+    if parsed_src.scheme:
+        url_to_download = src
+        parsed_src = (parsed_src._replace(scheme=''))._replace(netloc='')
+        src = parsed_src.geturl()
+    else:
+        url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
+    extension = os.path.splitext(parsed_src.path)[1]
+    if not extension:
+        src = '{0}.html'.format(src)
     with open(path_to_file(src, path_builder), 'wb') as inner_file:
         inner_file.write(requests.get(url_to_download).content)
     return path_to_file(src, path_builder)

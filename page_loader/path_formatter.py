@@ -4,7 +4,7 @@
 
 import os
 import re
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
 
 
 def path_formatter(url, output):
@@ -33,13 +33,6 @@ def path_formatter(url, output):
 
 
 def path_to_file(src, path_builder):
-    parsed_src = urlparse(src)
-    if parsed_src.scheme:
-        parsed_src = (parsed_src._replace(scheme=''))._replace(netloc='')
-        src = parsed_src.geturl()
-    extension = os.path.splitext(parsed_src.path)[1]
-    if not extension:
-        src = '{0}.html'.format(src)
     return '{0}/{1}{2}'.format(
         path_builder['path_to_files'],
         path_builder['host_name'],
