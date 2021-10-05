@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Tests."""
 
-import tempfile
-from pathlib import Path
 import os
 import re
 import shutil
+import tempfile
 
+import pytest
+import requests
 from page_loader.page_loader import download
 from page_loader.path_formatter import path_formatter
 
@@ -101,3 +102,29 @@ def test_change_files_src(requests_mock):
                 path_to_expctd_fixture = '{0}/tests/fixtures/expected_htmls/expected_html_sources.html'.format(tmpdir)
                 with open(path_to_expctd_fixture, 'r') as expected_html_file:
                     assert html_file.read() == expected_html_file.read()
+
+
+def test_not_found_exception():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(FileNotFoundError, match=".*- Folder doesn't exist$"):
+            download('https://ru.hexlet.io/courses', '{0}/salam_bratuha'.format(tmpdir))
+
+
+def test_not_a_dir_exception():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open('{0}/file'.format(tmpdir), 'w') as file:
+            file.write('salam, bratva')
+        with pytest.raises(NotADirectoryError, match='.*- You need to choose a folder, not a file$'):
+            download('https://ru.hexlet.io/courses', '{0}/file'.format(tmpdir))
+
+
+def test_permission_exception():
+    with pytest.raises(PermissionError, match=".*- You don't have permissions to write into this folder$"):
+        download('https://ru.hexlet.io/courses', '/')
+
+
+def test_http_exception():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.chdir(tmpdir)
+        with pytest.raises(requests.exceptions.HTTPError, match='404 Client Error: Not Found for url: .*$'):
+            download('https://ru.hexlet.io/courses1488228', tmpdir)
