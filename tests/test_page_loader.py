@@ -3,8 +3,8 @@
 
 import os
 import re
-import shutil
 import tempfile
+from urllib.parse import urljoin
 
 import pytest
 import requests
@@ -39,9 +39,7 @@ def test_download_img(requests_mock):
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
-        image_full_url = '{0}/tests/fixtures/files/img.png'.format(
-            path_builder['original_url'],
-        )
+        image_full_url = urljoin(path_builder['original_url'], '/tests/fixtures/files/img.png')
         with open('tests/fixtures/files/img.png', 'rb') as image:
             requests_mock.get(
                 image_full_url, body=image,
@@ -86,21 +84,16 @@ def test_change_files_src(requests_mock):
     Returns answer of assert.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        shutil.copytree(os.getcwd(), tmpdir, dirs_exist_ok=True)
-        os.chdir(tmpdir)
         path_builder = path_formatter(
-            'https://ru.hexlet.io/courses', os.getcwd(),
+            'https://ru.hexlet.io/courses', tmpdir,
         )
-        path_to_fixture = '{0}/tests/fixtures/html_with_files.html'.format(tmpdir)
-        with open(path_to_fixture, 'rb') as html_page:
+        with open('tests/fixtures/html_with_files.html', 'rb') as html_page:
             requests_mock.get(
                 re.compile(r'.*hexlet\.io.*'),
                 body=html_page,
             )
-            file_path = download(path_builder['original_url'])
-            with open(file_path, 'r') as html_file:
-                path_to_expctd_fixture = '{0}/tests/fixtures/expected_htmls/expected_html_sources.html'.format(tmpdir)
-                with open(path_to_expctd_fixture, 'r') as expected_html_file:
+            with open(download(path_builder['original_url'], tmpdir), 'r') as html_file:
+                with open('tests/fixtures/expected_htmls/expected_html_sources.html', 'r') as expected_html_file:
                     assert html_file.read() == expected_html_file.read()
 
 
@@ -125,6 +118,5 @@ def test_permission_exception():
 
 def test_http_exception():
     with tempfile.TemporaryDirectory() as tmpdir:
-        os.chdir(tmpdir)
         with pytest.raises(requests.exceptions.HTTPError, match='404 Client Error: Not Found for url: .*$'):
             download('https://ru.hexlet.io/courses1488228', tmpdir)

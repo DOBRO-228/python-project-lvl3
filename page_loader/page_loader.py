@@ -3,14 +3,19 @@
 """Page loader cli."""
 
 import argparse
-import logging
 import os
 import pathlib
 import sys
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
+from page_loader.logging_utils import (
+    check_folder,
+    os_logger,
+    request_logger,
+    request_wrapper,
+)
 from page_loader.path_formatter import path_formatter, path_to_file
 
 
@@ -45,36 +50,13 @@ def download_files(path_builder, soup):
 
 
 def download_file(src, path_builder):
-    parsed_src = urlparse(src)
-    if parsed_src.scheme:
+    if urlparse(src).scheme:
         url_to_download = src
-        parsed_src = (parsed_src._replace(scheme=''))._replace(netloc='')
-        src = parsed_src.geturl()
     else:
-        url_to_download = '{0}{1}'.format(path_builder['original_url'], src)
-    extension = os.path.splitext(src)[1]
-    if not extension:
-        src = '{0}.html'.format(src)
-    with open(path_to_file(src, path_builder), 'wb') as inner_file:
+        url_to_download = urljoin(path_builder['original_url'], src)
+    with open(path_to_file(src, path_builder)['absolute'], 'wb') as inner_file:
         inner_file.write(request_wrapper(url_to_download).content)
-    return path_to_file(src, path_builder)
-
-
-def check_folder(path):
-    if not os.path.exists(path):
-        raise FileNotFoundError("{0} - Folder doesn't exist".format(path))
-    elif not os.path.isdir(path):
-        raise NotADirectoryError('{0} - You need to choose a folder, not a file'.format(path))
-    elif not os.access(path, os.W_OK):
-        raise PermissionError("{0} - You don't have permissions to write into this folder".format(path))
-
-
-def request_wrapper(url):
-    res = requests.get(url)
-    not_expected_status = 399
-    if res.status_code > not_expected_status:
-        res.raise_for_status()
-    return res
+    return path_to_file(src, path_builder)['relative']
 
 
 def main():
@@ -84,15 +66,10 @@ def main():
         argument_default=argparse.SUPPRESS,
         add_help=False,
     )
-    parser.add_argument(
-        'url',
-        help=argparse.SUPPRESS,
-    )
     group = parser.add_argument_group('Options')
     group.add_argument(
         '-o',
-        metavar=('--output', '[dir]'),
-        nargs=2,
+        '--output',
         help='output dir (default: "/app")',
         default=os.getcwd(),
     )
@@ -102,21 +79,20 @@ def main():
         action='help',
         help='display help for command',
     )
-    args = parser.parse_args()
-    logging.basicConfig(
-        format='%(levelname)s: %(folder)s - %(message)s',
-        level=logging.ERROR,
-        stream=sys.stderr,
+    parser.add_argument(
+        'url',
+        help=argparse.SUPPRESS,
     )
+    args = parser.parse_args()
     try:
-        check_folder(args.o)
+        check_folder(args.output)
     except OSError as error:
-        logging.error(error, extra={'folder': args.o})
+        os_logger().error(error, extra={'folder': args.output})
         sys.exit(1)
     try:
-        file_path = '{0}\n'.format(download(args.url, args.o))
+        file_path = '{0}\n'.format(download(args.url, args.output))
     except requests.exceptions.RequestException as request_error:
-        logging.error(request_error, extra={'folder': ''})
+        request_logger().error(request_error)
         sys.exit(1)
     sys.stdout.write(file_path)
 
