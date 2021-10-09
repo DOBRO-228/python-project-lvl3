@@ -39,7 +39,9 @@ def test_download_img(requests_mock):
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
-        image_full_url = urljoin(path_builder['original_url'], '/tests/fixtures/files/img.png')
+        image_full_url = urljoin(
+            path_builder['original_url'], '/tests/fixtures/files/img.png',
+        )
         with open('tests/fixtures/files/img.png', 'rb') as image:
             requests_mock.get(
                 image_full_url, body=image,
@@ -67,12 +69,40 @@ def test_download_all_media(requests_mock):
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
-        with open('tests/fixtures/html_with_imgs.html', 'rb') as html_page:
-            matcher = re.compile(r'.*hexlet\.io.*')
-            requests_mock.get(matcher, body=html_page)
-            download('https://ru.hexlet.io/courses', tmpdir)
-            files = os.listdir(path_builder['path_to_files'])
-            assert len(files) == 2
+        with open('tests/fixtures/html_with_imgs.html', 'r') as html_page:
+            requests_mock.get('https://ru.hexlet.io/courses', text=html_page.read())
+        with open('tests/fixtures/files/img.png', 'rb') as original_png:
+            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img.png', body=original_png)
+        with open('tests/fixtures/files/img2.jpg', 'rb') as original_jpg:
+            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img2.jpg', body=original_jpg)
+        with open('tests/fixtures/files/application.css', 'r') as original_css:
+            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/application.css', text=original_css.read())
+        with open('tests/fixtures/files/script.js', 'r') as original_js:
+            requests_mock.get('https://ru.hexlet.io/packs/js/script.js', text=original_js.read())
+        download('https://ru.hexlet.io/courses', tmpdir)
+        with open('{0}/ru-hexlet-io-packs-js-script.js'.format(path_builder['path_to_files']), 'r') as downloaded_js:
+            with open('tests/fixtures/files/script.js', 'r') as expected_js:
+                assert downloaded_js.read() == expected_js.read()
+                files = os.listdir(path_builder['path_to_files'])
+                assert len(files) == 5
+        with open(
+            '{0}/ru-hexlet-io-tests-fixtures-files-application.css'.format(path_builder['path_to_files']),
+            'r',
+        ) as downloaded_css:
+            with open('tests/fixtures/files/application.css', 'r') as expected_css:
+                assert downloaded_css.read() == expected_css.read()
+        # with open(
+        #     '{0}/ru-hexlet-io-tests-fixtures-files-img2.jpg'.format(path_builder['path_to_files']),
+        #     'rb',
+        # ) as downloaded_jpg:
+        #     with open('tests/fixtures/files/img2.jpg', 'rb') as expected_jpg:
+        #         assert downloaded_jpg.read() == expected_jpg.read()
+        # with open(
+        #     '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(path_builder['path_to_files']),
+        #     'rb',
+        # ) as downloaded_png:
+        #     with open('tests/fixtures/files/img.png', 'rb') as expected_png:
+        #         assert downloaded_png.read() == expected_png.read()
 
 
 def test_change_files_src(requests_mock):
@@ -87,10 +117,10 @@ def test_change_files_src(requests_mock):
         path_builder = path_formatter(
             'https://ru.hexlet.io/courses', tmpdir,
         )
-        with open('tests/fixtures/html_with_files.html', 'rb') as html_page:
+        with open('tests/fixtures/html_with_files.html', 'r') as html_page:
             requests_mock.get(
                 re.compile(r'.*hexlet\.io.*'),
-                body=html_page,
+                text=html_page.read(),
             )
             with open(download(path_builder['original_url'], tmpdir), 'r') as html_file:
                 with open('tests/fixtures/expected_htmls/expected_html_sources.html', 'r') as expected_html_file:
