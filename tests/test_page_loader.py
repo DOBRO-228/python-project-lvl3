@@ -44,7 +44,7 @@ def test_download_img(requests_mock):
         )
         with open('tests/fixtures/files/img.png', 'rb') as image:
             requests_mock.get(
-                image_full_url, body=image,
+                image_full_url, content=image.read(),
             )
             requests_mock.get(
                 path_builder['original_url'],
@@ -72,9 +72,9 @@ def test_download_all_media(requests_mock):
         with open('tests/fixtures/html_with_imgs.html', 'r') as html_page:
             requests_mock.get('https://ru.hexlet.io/courses', text=html_page.read())
         with open('tests/fixtures/files/img.png', 'rb') as original_png:
-            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img.png', body=original_png)
+            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img.png', content=original_png.read())
         with open('tests/fixtures/files/img2.jpg', 'rb') as original_jpg:
-            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img2.jpg', body=original_jpg)
+            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img2.jpg', content=original_jpg.read())
         with open('tests/fixtures/files/application.css', 'r') as original_css:
             requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/application.css', text=original_css.read())
         with open('tests/fixtures/files/script.js', 'r') as original_js:
@@ -91,18 +91,18 @@ def test_download_all_media(requests_mock):
         ) as downloaded_css:
             with open('tests/fixtures/files/application.css', 'r') as expected_css:
                 assert downloaded_css.read() == expected_css.read()
-        # with open(
-        #     '{0}/ru-hexlet-io-tests-fixtures-files-img2.jpg'.format(path_builder['path_to_files']),
-        #     'rb',
-        # ) as downloaded_jpg:
-        #     with open('tests/fixtures/files/img2.jpg', 'rb') as expected_jpg:
-        #         assert downloaded_jpg.read() == expected_jpg.read()
-        # with open(
-        #     '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(path_builder['path_to_files']),
-        #     'rb',
-        # ) as downloaded_png:
-        #     with open('tests/fixtures/files/img.png', 'rb') as expected_png:
-        #         assert downloaded_png.read() == expected_png.read()
+        with open(
+            '{0}/ru-hexlet-io-tests-fixtures-files-img2.jpg'.format(path_builder['path_to_files']),
+            'rb',
+        ) as downloaded_jpg:
+            with open('tests/fixtures/files/img2.jpg', 'rb') as expected_jpg:
+                assert downloaded_jpg.read() == expected_jpg.read()
+        with open(
+            '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(path_builder['path_to_files']),
+            'rb',
+        ) as downloaded_png:
+            with open('tests/fixtures/files/img.png', 'rb') as expected_png:
+                assert downloaded_png.read() == expected_png.read()
 
 
 def test_change_files_src(requests_mock):
