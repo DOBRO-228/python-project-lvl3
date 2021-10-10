@@ -90,7 +90,7 @@ def main():
         os_logger().error(error, extra={'folder': args.output})
         sys.exit(1)
     try:
-        file_path = '{0}\n'.format(download(args.url, args.output))
+        file_path = "Page was successfully downloaded into '{0}'\n".format(download(args.url, args.output))
     except requests.exceptions.RequestException as request_error:
         request_logger().error(request_error)
         sys.exit(1)
