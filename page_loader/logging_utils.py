@@ -4,8 +4,12 @@
 
 import logging
 import os
+import sys
+import time
 
 import requests
+from progress.colors import color
+from progress.spinner import PixelSpinner
 
 
 def os_logger():
@@ -36,7 +40,15 @@ def check_folder(path):
 
 
 def request_wrapper(url):
+    spinner = PixelSpinner(url)
+    # sys.stdout.write('{0} {1}'.format(spinner, url))
+    spinner.start()
+    time.sleep(1)
     res = requests.get(url)
+    spinner.finish()
+    spinner = PixelSpinner('{0} {1}\n'.format(color('\u2713', fg='green'), url))
+    spinner.update()
+    time.sleep(1)
     not_expected_status = 399
     if res.status_code > not_expected_status:
         res.raise_for_status()
