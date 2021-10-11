@@ -13,7 +13,8 @@ from page_loader.path_formatter import path_formatter
 
 
 def test_download(requests_mock):
-    """Test download method of page-loader.
+    """
+    Test that download function will download html page.
 
     Args:
         requests_mock (package): Package for mocking requests.
@@ -30,7 +31,8 @@ def test_download(requests_mock):
 
 
 def test_download_img(requests_mock):
-    """Test download method of page-loader.
+    """
+    Test that download function will download image from html page.
 
     Args:
         requests_mock (package): Package for mocking requests.
@@ -60,7 +62,8 @@ def test_download_img(requests_mock):
 
 
 def test_download_all_media(requests_mock):
-    """Test download method of page-loader.
+    """
+    Test that download function will download all media from html page.
 
     Args:
         requests_mock (package): Package for mocking requests.
@@ -106,7 +109,8 @@ def test_download_all_media(requests_mock):
 
 
 def test_change_files_src(requests_mock):
-    """Test download method of page-loader.
+    """
+    Test that sources of files will be replaced on local sources in html page.
 
     Args:
         requests_mock (package): Package for mocking requests.
@@ -128,12 +132,14 @@ def test_change_files_src(requests_mock):
 
 
 def test_not_found_exception():
+    """Test that exception FileNotFoundError will be raised."""
     with tempfile.TemporaryDirectory() as tmpdir:
         with pytest.raises(FileNotFoundError, match=".*- Folder doesn't exist$"):
             download('https://ru.hexlet.io/courses', '{0}/salam_bratuha'.format(tmpdir))
 
 
 def test_not_a_dir_exception():
+    """Test that exception NotADirectoryError will be raised."""
     with tempfile.TemporaryDirectory() as tmpdir:
         with open('{0}/file'.format(tmpdir), 'w') as file:
             file.write('salam, bratva')
@@ -142,11 +148,13 @@ def test_not_a_dir_exception():
 
 
 def test_permission_exception():
+    """Test that exception PermissionError will be raised."""
     with pytest.raises(PermissionError, match=".*- You don't have permissions to write into this folder$"):
         download('https://ru.hexlet.io/courses', '/')
 
 
 def test_http_exception():
+    """Test that exception requests.exceptions.HTTPError will be raised."""
     with tempfile.TemporaryDirectory() as tmpdir:
         with pytest.raises(requests.exceptions.HTTPError, match='404 Client Error: Not Found for url: .*$'):
             download('https://ru.hexlet.io/courses1488228', tmpdir)

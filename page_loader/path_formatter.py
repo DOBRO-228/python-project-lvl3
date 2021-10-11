@@ -8,6 +8,16 @@ from urllib.parse import urlparse
 
 
 def path_formatter(url, output):
+    """
+    Build(format) path.
+
+    Args:
+        url (str): URL to download.
+        output (str): Where to download.
+
+    Returns:
+        (dict): Dictionary with paths.
+    """
     parsed_url = urlparse(url)
     scheme = parsed_url.scheme
     hostname = parsed_url.netloc
@@ -17,7 +27,6 @@ def path_formatter(url, output):
     )
     return {
         'original_url': url,
-        'scheme': scheme,
         'scheme_with_host': '{0}://{1}'.format(scheme, hostname),
         'host_name': change_symbols(hostname),
         'path_to_html': '{0}/{1}{2}.html'.format(
@@ -28,6 +37,16 @@ def path_formatter(url, output):
 
 
 def path_to_file(src, path_builder):
+    """
+    Build path to downloaded file.
+
+    Args:
+        src (str): URL to download.
+        path_builder (dict): Paths.
+
+    Returns:
+        (dict): Dictionary with absolute and relative path to file.
+    """
     parsed_src = urlparse(src)
     if parsed_src.scheme:
         parsed_src = (parsed_src._replace(scheme=''))._replace(netloc='')
@@ -51,6 +70,15 @@ def path_to_file(src, path_builder):
 
 
 def change_symbols(part_of_url):
+    """
+    Change symbols.
+
+    Args:
+        part_of_url (str): Part of URL.
+
+    Returns:
+        (str): Part of URL with changed symbols.
+    """
     symbols_to_change = r'[^A-Za-z\d]'
     if part_of_url.startswith('/'):
         root_ext = os.path.splitext(part_of_url)
