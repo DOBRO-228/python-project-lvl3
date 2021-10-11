@@ -6,17 +6,20 @@ import argparse
 import os
 import pathlib
 import sys
-from urllib.parse import urljoin, urlparse
+import types
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
 from page_loader.logging_utils import (
     check_folder,
+    info_logger,
     os_logger,
     request_logger,
     request_wrapper,
 )
 from page_loader.path_formatter import path_formatter, path_to_file
+from progress.bar import FillingSquaresBar
 
 
 def download(url, output=None):
@@ -32,30 +35,38 @@ def download(url, output=None):
     return path_builder['path_to_html']
 
 
+SOURCES = types.MappingProxyType({
+    'img': 'src',
+    'script': 'src',
+    'link': 'href',
+})
+
+
 def download_files(path_builder, soup):
     pathlib.Path(path_builder['path_to_files']).mkdir(
         parents=False, exist_ok=True,
     )
-    sources = {
-        'img': 'src',
-        'script': 'src',
-        'link': 'href',
-    }
+    elements_to_download = []
     for html_elem in soup.find_all(['img', 'script', 'link']):
-        file_src = html_elem.get(sources[html_elem.name])
-        if file_src is not None and file_src.startswith(('/', path_builder['scheme_with_host'])):
-            html_elem[sources[html_elem.name]] = download_file(
-                file_src, path_builder,
-            )
+        file_src = html_elem.get(SOURCES[html_elem.name])
+        if file_src is not None:
+            if file_src.startswith('/'):
+                html_elem[SOURCES[html_elem.name]] = urljoin(path_builder['original_url'], file_src)
+                elements_to_download.append(html_elem)
+            if file_src.startswith(path_builder['scheme_with_host']):
+                elements_to_download.append(html_elem)
+    progress_bar = FillingSquaresBar('Downloading files', max=len(elements_to_download))
+    for element in elements_to_download:
+        element[SOURCES[element.name]] = download_file(
+            element[SOURCES[element.name]], path_builder,
+        )
+        progress_bar.next()
+    progress_bar.finish()
 
 
 def download_file(src, path_builder):
-    if urlparse(src).scheme:
-        url_to_download = src
-    else:
-        url_to_download = urljoin(path_builder['original_url'], src)
     with open(path_to_file(src, path_builder)['absolute'], 'wb') as inner_file:
-        inner_file.write(request_wrapper(url_to_download).content)
+        inner_file.write(request_wrapper(src).content)
     return path_to_file(src, path_builder)['relative']
 
 
@@ -90,11 +101,11 @@ def main():
         os_logger().error(error, extra={'folder': args.output})
         sys.exit(1)
     try:
-        file_path = "Page was successfully downloaded into '{0}'\n".format(download(args.url, args.output))
+        file_path = download(args.url, args.output)
     except requests.exceptions.RequestException as request_error:
         request_logger().error(request_error)
         sys.exit(1)
-    sys.stdout.write(file_path)
+    info_logger().info("Page was successfully downloaded into '{0}'".format(file_path))
 
 
 if __name__ == '__main__':
