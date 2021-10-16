@@ -4,12 +4,26 @@
 import os
 import re
 import tempfile
+from typing import Union
 from urllib.parse import urljoin
 
-import pytest
-import requests
 from page_loader.page_loader import download
 from page_loader.path_formatter import path_formatter
+
+
+def read(path: str, mode: str = 'r') -> Union[str, bytes]:
+    """
+    Read file.
+
+    Args:
+        path (str): Path to file.
+        mode (str): Reading mode.
+
+    Returns:
+        Union[str, bytes]: Insides.
+    """
+    with open(path, mode) as opened_file:
+        return opened_file.read()
 
 
 def test_download(requests_mock):
@@ -22,12 +36,13 @@ def test_download(requests_mock):
     Returns answer of assert.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        with open('tests/fixtures/expected_htmls/response.html', 'r') as fixture:
-            requests_mock.get('https://ru.hexlet.io/courses', text='html_page')
-            file_path = download('https://ru.hexlet.io/courses', tmpdir)
-            assert file_path == '{0}/ru-hexlet-io-courses.html'.format(tmpdir)
-            with open(file_path, 'r') as html_file:
-                assert html_file.read() == fixture.read()
+        requests_mock.get('https://ru.hexlet.io/courses', text='html_page')
+        file_path = download('https://ru.hexlet.io/courses', tmpdir)
+        assert file_path == '{0}/ru-hexlet-io-courses.html'.format(tmpdir)
+        with open(file_path, 'r') as html_file:
+            assert html_file.read() == read(
+                'tests/fixtures/expected_htmls/response.html', 'r',
+            )
 
 
 def test_download_img(requests_mock):
@@ -44,21 +59,20 @@ def test_download_img(requests_mock):
         image_full_url = urljoin(
             path_builder['original_url'], '/tests/fixtures/files/img.png',
         )
-        with open('tests/fixtures/files/img.png', 'rb') as image:
-            requests_mock.get(
-                image_full_url, content=image.read(),
-            )
-            requests_mock.get(
-                path_builder['original_url'],
-                text='<img src="/tests/fixtures/files/img.png" alt="И">',
-            )
-            download('https://ru.hexlet.io/courses', tmpdir)
-            path_to_img = '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(
-                path_builder['path_to_files'],
-            )
-            with open(path_to_img, 'rb') as downloaded_image:
-                with open('tests/fixtures/files/img.png', 'rb') as original_image:
-                    assert downloaded_image.read() == original_image.read()
+        requests_mock.get(
+            image_full_url, content=read('tests/fixtures/files/img.png', 'rb'),
+        )
+        requests_mock.get(
+            path_builder['original_url'],
+            text='<img src="/tests/fixtures/files/img.png" alt="И">',
+        )
+        download('https://ru.hexlet.io/courses', tmpdir)
+        path_to_img = '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(
+            path_builder['path_to_files'],
+        )
+        assert read(path_to_img, 'rb') == read(
+            'tests/fixtures/files/img.png', 'rb',
+        )
 
 
 def test_download_all_media(requests_mock):
@@ -72,40 +86,54 @@ def test_download_all_media(requests_mock):
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         path_builder = path_formatter('https://ru.hexlet.io/courses', tmpdir)
-        with open('tests/fixtures/html_with_imgs.html', 'r') as html_page:
-            requests_mock.get('https://ru.hexlet.io/courses', text=html_page.read())
-        with open('tests/fixtures/files/img.png', 'rb') as original_png:
-            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img.png', content=original_png.read())
-        with open('tests/fixtures/files/img2.jpg', 'rb') as original_jpg:
-            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/img2.jpg', content=original_jpg.read())
-        with open('tests/fixtures/files/application.css', 'r') as original_css:
-            requests_mock.get('https://ru.hexlet.io/tests/fixtures/files/application.css', text=original_css.read())
-        with open('tests/fixtures/files/script.js', 'r') as original_js:
-            requests_mock.get('https://ru.hexlet.io/packs/js/script.js', text=original_js.read())
+        requests_mock.get(
+            'https://ru.hexlet.io/courses',
+            text=read('tests/fixtures/html_with_imgs.html', 'r'),
+        )
+        requests_mock.get(
+            'https://ru.hexlet.io/tests/fixtures/files/img.png',
+            content=read('tests/fixtures/files/img.png', 'rb'),
+        )
+        requests_mock.get(
+            'https://ru.hexlet.io/tests/fixtures/files/img2.jpg',
+            content=read('tests/fixtures/files/img2.jpg', 'rb'),
+        )
+        requests_mock.get(
+            'https://ru.hexlet.io/tests/fixtures/files/application.css',
+            text=read('tests/fixtures/files/application.css', 'r'),
+        )
+        requests_mock.get(
+            'https://ru.hexlet.io/packs/js/script.js',
+            text=read('tests/fixtures/files/script.js', 'r'),
+        )
         download('https://ru.hexlet.io/courses', tmpdir)
-        with open('{0}/ru-hexlet-io-packs-js-script.js'.format(path_builder['path_to_files']), 'r') as downloaded_js:
-            with open('tests/fixtures/files/script.js', 'r') as expected_js:
-                assert downloaded_js.read() == expected_js.read()
-                files = os.listdir(path_builder['path_to_files'])
-                assert len(files) == 5
-        with open(
-            '{0}/ru-hexlet-io-tests-fixtures-files-application.css'.format(path_builder['path_to_files']),
+        path_to_files = path_builder['path_to_files']
+        assert read(
+            '{0}/ru-hexlet-io-packs-js-script.js'.format(
+                path_to_files,
+            ),
             'r',
-        ) as downloaded_css:
-            with open('tests/fixtures/files/application.css', 'r') as expected_css:
-                assert downloaded_css.read() == expected_css.read()
-        with open(
-            '{0}/ru-hexlet-io-tests-fixtures-files-img2.jpg'.format(path_builder['path_to_files']),
-            'rb',
-        ) as downloaded_jpg:
-            with open('tests/fixtures/files/img2.jpg', 'rb') as expected_jpg:
-                assert downloaded_jpg.read() == expected_jpg.read()
-        with open(
-            '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(path_builder['path_to_files']),
-            'rb',
-        ) as downloaded_png:
-            with open('tests/fixtures/files/img.png', 'rb') as expected_png:
-                assert downloaded_png.read() == expected_png.read()
+        ) == read('tests/fixtures/files/script.js', 'r')
+        downloaded_files = os.listdir(path_to_files)
+        assert len(downloaded_files) == 5
+        assert read(
+            '{0}/ru-hexlet-io-tests-fixtures-files-application.css'.format(
+                path_to_files,
+            ), 'r',
+        ) == read('tests/fixtures/files/application.css', 'r')
+        dwnld_jpg = '{0}/ru-hexlet-io-tests-fixtures-files-img2.jpg'.format(
+            path_to_files,
+        )
+        assert read(dwnld_jpg, 'rb') == read(
+            'tests/fixtures/files/img2.jpg', 'rb',
+        )
+        assert read(
+            '{0}/ru-hexlet-io-tests-fixtures-files-img.png'.format(
+                path_to_files,
+            ), 'rb',
+        ) == read(
+            'tests/fixtures/files/img.png', 'rb',
+        )
 
 
 def test_change_files_src(requests_mock):
@@ -121,40 +149,10 @@ def test_change_files_src(requests_mock):
         path_builder = path_formatter(
             'https://ru.hexlet.io/courses', tmpdir,
         )
-        with open('tests/fixtures/html_with_files.html', 'r') as html_page:
-            requests_mock.get(
-                re.compile(r'.*hexlet\.io.*'),
-                text=html_page.read(),
-            )
-            with open(download(path_builder['original_url'], tmpdir), 'r') as html_file:
-                with open('tests/fixtures/expected_htmls/expected_html_sources.html', 'r') as expected_html_file:
-                    assert html_file.read() == expected_html_file.read()
-
-
-def test_not_found_exception():
-    """Test that exception FileNotFoundError will be raised."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with pytest.raises(FileNotFoundError, match=".*- Folder doesn't exist$"):
-            download('https://ru.hexlet.io/courses', '{0}/salam_bratuha'.format(tmpdir))
-
-
-def test_not_a_dir_exception():
-    """Test that exception NotADirectoryError will be raised."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with open('{0}/file'.format(tmpdir), 'w') as file:
-            file.write('salam, bratva')
-        with pytest.raises(NotADirectoryError, match='.*- You need to choose a folder, not a file$'):
-            download('https://ru.hexlet.io/courses', '{0}/file'.format(tmpdir))
-
-
-def test_permission_exception():
-    """Test that exception PermissionError will be raised."""
-    with pytest.raises(PermissionError, match=".*- You don't have permissions to write into this folder$"):
-        download('https://ru.hexlet.io/courses', '/')
-
-
-def test_http_exception():
-    """Test that exception requests.exceptions.HTTPError will be raised."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with pytest.raises(requests.exceptions.HTTPError, match='404 Client Error: Not Found for url: .*$'):
-            download('https://ru.hexlet.io/courses1488228', tmpdir)
+        requests_mock.get(
+            re.compile(r'.*hexlet\.io.*'),
+            text=read('tests/fixtures/html_with_files.html', 'r'),
+        )
+        html_file = download(path_builder['original_url'], tmpdir)
+        exp_html_file = 'tests/fixtures/expected_htmls/exp_html_sources.html'
+        assert read(html_file, 'r') == read(exp_html_file, 'r')
