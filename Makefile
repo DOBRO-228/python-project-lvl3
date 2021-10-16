@@ -16,3 +16,7 @@ test:
 	poetry run pytest -vv
 test-coverage:
 	poetry run pytest --cov=page_loader --cov-report xml
+test-coverage_mine:
+	poetry run pytest --cov=page_loader
+sort:
+	poetry run isort .

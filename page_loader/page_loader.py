@@ -23,7 +23,17 @@ from progress.bar import FillingSquaresBar
 
 
 def download(url, output=None):
-    if output is None:
+    """
+    Download html and local resources.
+
+    Args:
+        url (str): URL to download.
+        output (str): Where to download.
+
+    Returns:
+        (str): Path to html file.
+    """
+    if output is None and output != '':
         output = os.getcwd()
     check_folder(output)
     path_builder = path_formatter(url, output)
@@ -31,7 +41,7 @@ def download(url, output=None):
     soup = BeautifulSoup(html, 'html.parser')
     download_files(path_builder, soup)
     with open(path_builder['path_to_html'], 'w') as html_file:
-        html_file.write(soup.prettify(formatter='html5'))
+        html_file.write(soup.prettify())
     return path_builder['path_to_html']
 
 
@@ -43,34 +53,56 @@ SOURCES = types.MappingProxyType({
 
 
 def download_files(path_builder, soup):
+    """
+    Download local resources.
+
+    Args:
+        path_builder (dict): URL to download.
+        soup (bs4.BeautifulSoup): Soup.
+    """
     pathlib.Path(path_builder['path_to_files']).mkdir(
         parents=False, exist_ok=True,
     )
     elements_to_download = []
-    for html_elem in soup.find_all(['img', 'script', 'link']):
+    for html_elem in soup.find_all(SOURCES.keys()):
         file_src = html_elem.get(SOURCES[html_elem.name])
         if file_src is not None:
-            if file_src.startswith('/'):
-                html_elem[SOURCES[html_elem.name]] = urljoin(path_builder['original_url'], file_src)
-                elements_to_download.append(html_elem)
+            file_src = urljoin(
+                path_builder['original_url'],
+                file_src,
+            )
             if file_src.startswith(path_builder['scheme_with_host']):
+                html_elem[SOURCES[html_elem.name]] = file_src
                 elements_to_download.append(html_elem)
-    progress_bar = FillingSquaresBar('Downloading files', max=len(elements_to_download))
-    for element in elements_to_download:
-        element[SOURCES[element.name]] = download_file(
-            element[SOURCES[element.name]], path_builder,
-        )
-        progress_bar.next()
-    progress_bar.finish()
+    with FillingSquaresBar(
+        'Downloading files',
+        max=len(elements_to_download),
+    ) as progress_bar:
+        for element in elements_to_download:
+            element[SOURCES[element.name]] = download_file(
+                element[SOURCES[element.name]], path_builder,
+            )
+            progress_bar.next()
 
 
 def download_file(src, path_builder):
+    """
+    Download one resource.
+
+    Args:
+        src (str): URL to download.
+        path_builder (dict): Paths.
+
+    Returns:
+        (str): Path to downloaded file.
+    """
     with open(path_to_file(src, path_builder)['absolute'], 'wb') as inner_file:
         inner_file.write(request_wrapper(src).content)
     return path_to_file(src, path_builder)['relative']
 
 
 def main():
+    """CLI command."""
     parser = argparse.ArgumentParser(
         usage='page-loader [options] <url>',
         description='Download html page',
@@ -81,7 +113,7 @@ def main():
     group.add_argument(
         '-o',
         '--output',
-        help='output dir (default: "/app")',
+        help='output dir (default: cwd)',
         default=os.getcwd(),
     )
     group.add_argument(
@@ -96,16 +128,15 @@ def main():
     )
     args = parser.parse_args()
     try:
-        check_folder(args.output)
+        file_path = download(args.url, args.output)
     except OSError as error:
         os_logger().error(error, extra={'folder': args.output})
         sys.exit(1)
-    try:
-        file_path = download(args.url, args.output)
     except requests.exceptions.RequestException as request_error:
         request_logger().error(request_error)
         sys.exit(1)
-    info_logger().info("Page was successfully downloaded into '{0}'".format(file_path))
+    msg_about_success = 'Page was successfully downloaded into'
+    info_logger().info("{0} '{1}'".format(msg_about_success, file_path))
 
 
 if __name__ == '__main__':
