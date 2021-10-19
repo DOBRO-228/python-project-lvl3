@@ -10,7 +10,7 @@ from functools import wraps
 import requests
 
 
-def os_logger():
+def error_logger():
     """
     Logger for OS exceptions.
 
@@ -23,26 +23,7 @@ def os_logger():
     logger.setLevel(logging.ERROR)
     log_handler = logging.StreamHandler()
     log_handler.setFormatter(logging.Formatter(
-        '{levelname}: {folder} - {message}', validate=False,
-    ))
-    logger.addHandler(log_handler)
-    return logger
-
-
-def request_logger():
-    """
-    Logger for requests exceptions.
-
-    Level - ERROR
-
-    Returns:
-        logger
-    """
-    logger = logging.getLogger('request')
-    logger.setLevel(logging.ERROR)
-    log_handler = logging.StreamHandler()
-    log_handler.setFormatter(logging.Formatter(
-        '{levelname}: {message}', validate=False,
+        '%(levelname)s: %(message)s',  # noqa: WPS323
     ))
     logger.addHandler(log_handler)
     return logger
@@ -102,17 +83,11 @@ def logging_decorator(function):
     @wraps(function)
     def decorator(path, output):
         try:
-            html_path = function(path, output)
-        except OSError as error:
-            os_logger().error(error, extra={'folder': output})
+            path_to_html = function(path, output)
+        except Exception as message:
+            error_logger().error(message)
             sys.exit(1)
-        except requests.exceptions.RequestException as request_error:
-            request_logger().error(request_error)
-            sys.exit(1)
-        except Exception as error:
-            logging.error(error)
-            sys.exit(1)
-        return html_path
+        return path_to_html
     return decorator
 
 

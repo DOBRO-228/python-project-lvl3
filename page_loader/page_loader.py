@@ -85,7 +85,7 @@ def download_file(src, path_builder):
 
     Args:
         src (str): URL to download.
-        path_builder (dict): Paths.
+        path_builder (dict): Absolute and relative paths to file.
 
     Returns:
         (str): Path to downloaded file.
@@ -121,7 +121,7 @@ def main():
         help=argparse.SUPPRESS,
     )
     args = parser.parse_args()
-    file_path = logging(download(args.url, args.output))
+    file_path = logging(download)(args.url, args.output)
     msg_about_success = 'Page was successfully downloaded into'
     info_logger().info("{0} '{1}'".format(msg_about_success, file_path))
 
