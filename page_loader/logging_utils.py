@@ -40,7 +40,7 @@ def info_logger():
     """
     logger = logging.getLogger('info')
     logger.setLevel(logging.INFO)
-    logger.addHandler(logging.StreamHandler())
+    logger.addHandler(logging.StreamHandler(sys.stdout))
     return logger
 
 
