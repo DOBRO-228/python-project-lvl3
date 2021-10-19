@@ -5,19 +5,13 @@
 import argparse
 import os
 import pathlib
-import sys
 import types
 from urllib.parse import urljoin
 
-import requests
 from bs4 import BeautifulSoup
-from page_loader.logging_utils import (
-    check_folder,
-    info_logger,
-    os_logger,
-    request_logger,
-    request_wrapper,
-)
+from page_loader.logging_utils import check_folder, info_logger
+from page_loader.logging_utils import logging_decorator as logging
+from page_loader.logging_utils import request_wrapper
 from page_loader.path_formatter import path_formatter, path_to_file
 from progress.bar import FillingSquaresBar
 
@@ -127,14 +121,7 @@ def main():
         help=argparse.SUPPRESS,
     )
     args = parser.parse_args()
-    try:
-        file_path = download(args.url, args.output)
-    except OSError as error:
-        os_logger().error(error, extra={'folder': args.output})
-        sys.exit(1)
-    except requests.exceptions.RequestException as request_error:
-        request_logger().error(request_error)
-        sys.exit(1)
+    file_path = logging(download(args.url, args.output))
     msg_about_success = 'Page was successfully downloaded into'
     info_logger().info("{0} '{1}'".format(msg_about_success, file_path))
 

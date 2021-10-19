@@ -4,6 +4,8 @@
 
 import logging
 import os
+import sys
+from functools import wraps
 
 import requests
 
@@ -82,6 +84,36 @@ def check_folder(path):
         )
     elif not os.access(path, os.W_OK):
         raise PermissionError('{0} - {1}'.format(path, permission_err))
+
+
+def logging_decorator(function):
+    """
+    Decorate download() function.
+
+    Args:
+        function (function): Function to decorate.
+
+    Returns:
+        html_path (str): Path to downloaded html
+
+    Raise:
+        SystemExit: If any exception will raise.
+    """
+    @wraps(function)
+    def decorator(path, output):
+        try:
+            html_path = function(path, output)
+        except OSError as error:
+            os_logger().error(error, extra={'folder': output})
+            sys.exit(1)
+        except requests.exceptions.RequestException as request_error:
+            request_logger().error(request_error)
+            sys.exit(1)
+        except Exception as error:
+            logging.error(error)
+            sys.exit(1)
+        return html_path
+    return decorator
 
 
 def request_wrapper(url):
